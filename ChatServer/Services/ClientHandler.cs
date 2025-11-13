@@ -33,13 +33,40 @@ namespace ChatServer.Services
         {
             try
             {
-                // ВРЕМЕННАЯ ЗАГЛУШКА
-                await Task.Delay(100);
-                Console.WriteLine($"Клиент {ClientName} подключен и слушает...");
+                _stream = _tcpClient.GetStream();
+                StreamReader reader = new StreamReader(_stream, System.Text.Encoding.UTF8);
+
+                string? nameLine = await reader.ReadLineAsync();
+                if (!string.IsNullOrEmpty(nameLine))
+                {
+                    _clientName = nameLine.Trim();
+                    Console.WriteLine($"Пользователь представился как: {_clientName}");
+                }
+
+                while (_tcpClient.Connected)
+                {
+                    string? jsonMessage = await reader.ReadLineAsync();
+
+                    if (string.IsNullOrEmpty(jsonMessage))
+                    {
+                        break;
+                    }
+
+                    Message? message = Message.FromJson(jsonMessage);
+                    if (message != null)
+                    {
+                        Console.WriteLine($"Получено сообщение от {_clientName}: {message.Text}");
+                        _server.BroadcastMessage(message);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка в ListenToClientAsync: {ex.Message}");
+                Console.WriteLine($"Ошибка при работе с клиентом {ClientName}: {ex.Message}");
+            }
+            finally
+            {
+                Disconnect();
             }
         }
 
