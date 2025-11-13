@@ -94,5 +94,36 @@ namespace ChatServer.Services
                 }
             }
         }
+
+        public void BroadcastMessage(Message msg)
+        {
+            List<ClientHandler> clientsToRemove = new List<ClientHandler>();
+
+            foreach (var client in _clients)
+            {
+                if (client.IsConnected)
+                {
+                    try
+                    {
+                        client.SendMessage(msg);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ошибка отправки сообщения клиенту {client.ClientName}: {ex.Message}");
+                        clientsToRemove.Add(client);
+                    }
+                }
+                else
+                {
+                    clientsToRemove.Add(client);
+                }
+            }
+
+            foreach (var client in clientsToRemove)
+            {
+                _clients.Remove(client);
+                Console.WriteLine($"Клиент {client.ClientName} удалён из списка");
+            }
+        }
     }
 }
