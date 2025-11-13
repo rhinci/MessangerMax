@@ -50,7 +50,24 @@ namespace ChatServer.Services
 
         public void Stop()
         {
-            // остановка сервера
+            try
+            {
+                _isRunning = false;
+
+                _listener?.Stop();
+
+                foreach (var client in _clients)
+                {
+                    client.Disconnect();  // пока не работает, нужен метод Disconnect из класса Client
+                }
+                _clients.Clear();
+
+                Console.WriteLine("Сервер остановлен");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка остановки сервера: {ex.Message}");
+            }
         }
 
         private async Task AcceptClientsAsync()
