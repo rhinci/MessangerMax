@@ -58,7 +58,7 @@ namespace ChatServer.Services
 
                 foreach (var client in _clients)
                 {
-                    client.Disconnect();  // пока не работает, нужен метод Disconnect из класса Client
+                    client.Disconnect();
                 }
                 _clients.Clear();
 
@@ -142,6 +142,47 @@ namespace ChatServer.Services
             };
 
             BroadcastMessage(disconnectMessage);
+        }
+
+        public void SendPrivateMessage(Message msg)
+        {
+            if (string.IsNullOrEmpty(msg.Receiver) || msg.Receiver == "All")
+            {
+                BroadcastMessage(msg);
+                return;
+            }
+
+            ClientHandler? targetClient = _clients.Find(client =>
+                client.ClientName.Equals(msg.Receiver, StringComparison.OrdinalIgnoreCase));
+
+            if (targetClient != null && targetClient.IsConnected)
+            {
+                try
+                {
+                    targetClient.SendMessage(msg);
+                    Console.WriteLine($"Личное сообщение от {msg.Sender} для {msg.Receiver}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка отправки личного сообщения: {ex.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Получатель {msg.Receiver} не найден или отключен");
+
+                Message errorMsg = new Message
+                {
+                    Sender = "Система",
+                    Text = $"Пользователь {msg.Receiver} не найден",
+                    Timestamp = DateTime.Now,
+                    Receiver = msg.Sender
+                };
+
+                ClientHandler? senderClient = _clients.Find(client =>
+                    client.ClientName.Equals(msg.Sender, StringComparison.OrdinalIgnoreCase));
+                senderClient?.SendMessage(errorMsg);
+            }
         }
     }
 }

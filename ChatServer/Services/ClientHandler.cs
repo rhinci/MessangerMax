@@ -65,7 +65,15 @@ namespace ChatServer.Services
                     if (message != null)
                     {
                         Console.WriteLine($"Получено сообщение от {_clientName}: {message.Text}");
-                        _server.BroadcastMessage(message);
+
+                        if (message.Receiver == "All" || string.IsNullOrEmpty(message.Receiver))
+                        {
+                            _server.BroadcastMessage(message);
+                        }
+                        else
+                        {
+                            _server.SendPrivateMessage(message);
+                        }
                     }
                 }
             }
