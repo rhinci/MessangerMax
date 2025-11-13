@@ -104,6 +104,11 @@ namespace ChatServer.Services
                 Console.WriteLine($"Системное сообщение: {msg.Text}");
             }
 
+            if (msg.FileData != null && msg.FileData.Length > 0)
+            {
+                Console.WriteLine($"Файл '{msg.FileName}' от {msg.Sender} для всех ({msg.FileData.Length} байт)");
+            }
+
             foreach (var client in _clients)
             {
                 if (client.IsConnected)
@@ -133,7 +138,7 @@ namespace ChatServer.Services
 
         public void NotifyClientDisconnected(string clientName)
         {
-            Message disconnectMessage = new Message
+            Message disconnectMessage = new Message 
             {
                 Sender = "Система",
                 Text = $"{clientName} покинул чат",
@@ -160,7 +165,15 @@ namespace ChatServer.Services
                 try
                 {
                     targetClient.SendMessage(msg);
-                    Console.WriteLine($"Личное сообщение от {msg.Sender} для {msg.Receiver}");
+
+                    if (msg.FileData != null && msg.FileData.Length > 0)
+                    {
+                        Console.WriteLine($"Файл '{msg.FileName}' от {msg.Sender} для {msg.Receiver} ({msg.FileData.Length} байт)");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Личное сообщение от {msg.Sender} для {msg.Receiver}: {msg.Text}");
+                    }
                 }
                 catch (Exception ex)
                 {
