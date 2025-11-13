@@ -45,7 +45,23 @@ namespace ChatServer.Services
 
         public void SendMessage(Message msg)
         {
-            // отправить сообщение клиенту
+            try
+            {
+                if (_tcpClient.Connected && _stream != null)
+                {
+                    string jsonMessage = msg.ToJson();
+
+                    byte[] data = System.Text.Encoding.UTF8.GetBytes(jsonMessage + Environment.NewLine);
+
+                    _stream.Write(data, 0, data.Length);
+                    _stream.Flush();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка отправки сообщения клиенту {ClientName}: {ex.Message}");
+                Disconnect();
+            }
         }
 
         public void Disconnect()
