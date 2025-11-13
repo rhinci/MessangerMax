@@ -31,7 +31,16 @@ namespace ChatServer.Services
 
         public async Task ListenToClientAsync()
         {
-            // слушать сообщения от клиента
+            try
+            {
+                // ВРЕМЕННАЯ ЗАГЛУШКА
+                await Task.Delay(100);
+                Console.WriteLine($"Клиент {ClientName} подключен и слушает...");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка в ListenToClientAsync: {ex.Message}");
+            }
         }
 
         public void SendMessage(Message msg)

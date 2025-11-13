@@ -72,7 +72,27 @@ namespace ChatServer.Services
 
         private async Task AcceptClientsAsync()
         {
-            // принятие подключений
+            while (_isRunning && _listener != null)
+            {
+                try
+                {
+                    TcpClient tcpClient = await _listener.AcceptTcpClientAsync();
+                    Console.WriteLine("Новое подключение принято!");
+
+                    ClientHandler clientHandler = new ClientHandler(tcpClient, this);
+                    _clients.Add(clientHandler);
+
+                    _ = clientHandler.ListenToClientAsync();
+                }
+                catch (ObjectDisposedException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка при принятии подключения: {ex.Message}");
+                }
+            }
         }
     }
 }
