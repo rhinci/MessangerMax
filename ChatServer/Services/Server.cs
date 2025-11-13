@@ -30,7 +30,22 @@ namespace ChatServer.Services
 
         public void Start(int port)
         {
-            // запуск сервера
+            try
+            {
+                _listener = new TcpListener(IPAddress.Any, port);
+
+                _listener.Start();
+                _isRunning = true;
+
+                Console.WriteLine($"Сервер запущен на порту {port}");
+
+                _ = AcceptClientsAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка запуска сервера: {ex.Message}");
+                _isRunning = false;
+            }
         }
 
         public void Stop()
