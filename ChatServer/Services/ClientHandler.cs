@@ -43,6 +43,15 @@ namespace ChatServer.Services
                     Console.WriteLine($"Пользователь представился как: {_clientName}");
                 }
 
+                Message connectMessage = new Message
+                {
+                    Sender = "Система",
+                    Text = $"{_clientName} присоединился к чату",
+                    Timestamp = DateTime.Now,
+                    Receiver = "All"
+                };
+                _server.BroadcastMessage(connectMessage);
+
                 while (_tcpClient.Connected)
                 {
                     string? jsonMessage = await reader.ReadLineAsync();
@@ -66,6 +75,7 @@ namespace ChatServer.Services
             }
             finally
             {
+                _server.NotifyClientDisconnected(_clientName);
                 Disconnect();
             }
         }
@@ -93,7 +103,17 @@ namespace ChatServer.Services
 
         public void Disconnect()
         {
-            // отключить клиента
+            try
+            {
+                _stream?.Close();
+                _tcpClient?.Close();
+
+                Console.WriteLine($"Клиент {ClientName} отключен");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при отключении клиента {ClientName}: {ex.Message}");
+            }
         }
     }
 }

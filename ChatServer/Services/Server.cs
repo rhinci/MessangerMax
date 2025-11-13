@@ -99,6 +99,11 @@ namespace ChatServer.Services
         {
             List<ClientHandler> clientsToRemove = new List<ClientHandler>();
 
+            if (msg.Sender == "Система")
+            {
+                Console.WriteLine($"Системное сообщение: {msg.Text}");
+            }
+
             foreach (var client in _clients)
             {
                 if (client.IsConnected)
@@ -124,6 +129,19 @@ namespace ChatServer.Services
                 _clients.Remove(client);
                 Console.WriteLine($"Клиент {client.ClientName} удалён из списка");
             }
+        }
+
+        public void NotifyClientDisconnected(string clientName)
+        {
+            Message disconnectMessage = new Message
+            {
+                Sender = "Система",
+                Text = $"{clientName} покинул чат",
+                Timestamp = DateTime.Now,
+                Receiver = "All"
+            };
+
+            BroadcastMessage(disconnectMessage);
         }
     }
 }
