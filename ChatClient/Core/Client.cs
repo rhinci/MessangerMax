@@ -25,6 +25,10 @@ namespace ChatClient.Core
         private StreamReader? _reader;
         private StreamWriter? _writer;
 
+        public event EventHandler? Connected;
+        public event EventHandler? Disconnected;
+
+
         public string ServerIp
         {
             get => _serverIp;
@@ -39,7 +43,7 @@ namespace ChatClient.Core
 
         public string Username
         {
-            get => _username;
+            get=> _username;
             set => _username = value;
         }
 
@@ -58,14 +62,15 @@ namespace ChatClient.Core
         {
             try
             {
-                _tcpClient = new TcpClient();
+                _tcpClient =new TcpClient();
                 await _tcpClient.ConnectAsync(_serverIp, _port);
                 _stream = _tcpClient.GetStream();
                 _reader = new StreamReader(_stream, Encoding.UTF8);
                 _writer = new StreamWriter(_stream, Encoding.UTF8) { AutoFlush = true };
-                _isConnected = true;
+                _isConnected=true;
                 await _writer.WriteLineAsync(_username);
-                _=ListenToServerAsync();
+                Connected?.Invoke(this, EventArgs.Empty); //для MainForm
+                _ =ListenToServerAsync();
                 return true;
             }
             catch
@@ -82,6 +87,8 @@ namespace ChatClient.Core
             _writer?.Dispose();
             _stream?.Dispose();
             _tcpClient?.Close();
+
+            Disconnected?.Invoke(this, EventArgs.Empty); //для MainForm
         }
 
 
@@ -97,17 +104,17 @@ namespace ChatClient.Core
         public async Task SendFileAsync(string filePath)
         {
             if (!File.Exists(filePath))return;
-            byte[] data = File.ReadAllBytes(filePath);
-            string fileName = Path.GetFileName(filePath);
+            byte[] data=File.ReadAllBytes(filePath);
+            string fileName= Path.GetFileName(filePath);
 
-            var msg = new ChatMessage
+            var msg=new ChatMessage
             {
-                Sender = _username,
-                Text = "",
-                Timestamp = DateTime.Now,
-                Receiver = "", // broadcast
-                FileName = fileName,
-                FileData = data
+                Sender= _username,
+                Text="",
+                Timestamp=DateTime.Now,
+                Receiver="", // broadcast
+                FileName=fileName,
+                FileData=data
             };
 
             await SendMessageAsync(msg);
@@ -119,22 +126,22 @@ namespace ChatClient.Core
             return await _logger.LoadHistory();
         }
 
-       //ассихроно
+       //асинхронно
         public async Task ListenToServerAsync()
         {
             while (_isConnected)
             {
                 try
                 {
-                    string line = await _reader.ReadLineAsync();
+                    string line= await _reader.ReadLineAsync();
 
-                    if (line == null)
+                    if (line==null)
                     {
                         Disconnect();
                         break;
                     }
-                    var msg = ChatMessage.FromJson(line);
-                    if (msg != null)
+                    var msg= ChatMessage.FromJson(line);
+                    if (msg!=null)
                     {
                         await _logger.LogMessage(msg);
                         MessageReceived?.Invoke(msg);
