@@ -58,7 +58,7 @@ namespace ChatServer.Services
 
                 foreach (var client in _clients)
                 {
-                    client.Disconnect();  // пока не работает, нужен метод Disconnect из класса Client
+                    client.Disconnect();
                 }
                 _clients.Clear();
 
@@ -72,7 +72,130 @@ namespace ChatServer.Services
 
         private async Task AcceptClientsAsync()
         {
-            // принятие подключений
+            while (_isRunning && _listener != null)
+            {
+                try
+                {
+                    TcpClient tcpClient = await _listener.AcceptTcpClientAsync();
+                    Console.WriteLine("Новое подключение принято!");
+
+                    ClientHandler clientHandler = new ClientHandler(tcpClient, this);
+                    _clients.Add(clientHandler);
+
+                    _ = clientHandler.ListenToClientAsync();
+                }
+                catch (ObjectDisposedException)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка при принятии подключения: {ex.Message}");
+                }
+            }
+        }
+
+        public void BroadcastMessage(Message msg)
+        {
+            List<ClientHandler> clientsToRemove = new List<ClientHandler>();
+
+            if (msg.Sender == "Система")
+            {
+                Console.WriteLine($"Системное сообщение: {msg.Text}");
+            }
+
+            if (msg.FileData != null && msg.FileData.Length > 0)
+            {
+                Console.WriteLine($"Файл '{msg.FileName}' от {msg.Sender} для всех ({msg.FileData.Length} байт)");
+            }
+
+            foreach (var client in _clients)
+            {
+                if (client.IsConnected)
+                {
+                    try
+                    {
+                        client.SendMessage(msg);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ошибка отправки сообщения клиенту {client.ClientName}: {ex.Message}");
+                        clientsToRemove.Add(client);
+                    }
+                }
+                else
+                {
+                    clientsToRemove.Add(client);
+                }
+            }
+
+            foreach (var client in clientsToRemove)
+            {
+                _clients.Remove(client);
+                Console.WriteLine($"Клиент {client.ClientName} удалён из списка");
+            }
+        }
+
+        public void NotifyClientDisconnected(string clientName)
+        {
+            Message disconnectMessage = new Message 
+            {
+                Sender = "Система",
+                Text = $"{clientName} покинул чат",
+                Timestamp = DateTime.Now,
+                Receiver = "All"
+            };
+
+            BroadcastMessage(disconnectMessage);
+        }
+
+        public void SendPrivateMessage(Message msg)
+        {
+            if (string.IsNullOrEmpty(msg.Receiver) || msg.Receiver == "All")
+            {
+                BroadcastMessage(msg);
+                return;
+            }
+
+            ClientHandler? targetClient = _clients.Find(client =>
+                client.ClientName.Equals(msg.Receiver, StringComparison.OrdinalIgnoreCase));
+
+            if (targetClient != null && targetClient.IsConnected)
+            {
+                try
+                {
+                    targetClient.SendMessage(msg);
+
+                    if (msg.FileData != null && msg.FileData.Length > 0)
+                    {
+                        Console.WriteLine($"Файл '{msg.FileName}' от {msg.Sender} для {msg.Receiver} ({msg.FileData.Length} байт)");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Личное сообщение от {msg.Sender} для {msg.Receiver}: {msg.Text}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка отправки личного сообщения: {ex.Message}");
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Получатель {msg.Receiver} не найден или отключен");
+
+                Message errorMsg = new Message
+                {
+                    Sender = "Система",
+                    Text = $"Пользователь {msg.Receiver} не найден",
+                    Timestamp = DateTime.Now,
+                    Receiver = msg.Sender
+                };
+
+                ClientHandler? senderClient = _clients.Find(client =>
+                    client.ClientName.Equals(msg.Sender, StringComparison.OrdinalIgnoreCase));
+                senderClient?.SendMessage(errorMsg);
+            }
         }
     }
 }
