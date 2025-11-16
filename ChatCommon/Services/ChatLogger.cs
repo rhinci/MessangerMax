@@ -26,7 +26,7 @@ namespace ChatCommon.Services
                 Directory.CreateDirectory(dir);
         }
 
-        //ассинхроная версия
+        //асинхронная версия
         public async Task LogMessage(Message msg)
         {
             if (msg==null) throw new ArgumentNullException(nameof(msg));

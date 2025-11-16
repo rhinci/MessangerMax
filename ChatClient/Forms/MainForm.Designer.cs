@@ -6,6 +6,8 @@
         ///  Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
+        private System.Windows.Forms.TextBox messageTextBox;
+
 
         /// <summary>
         ///  Clean up any resources being used.
@@ -34,9 +36,10 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(828, 473);
+            ClientSize = new Size(914, 722);
             Name = "MainForm";
-            Text = "Form1";
+            Text = "Messanger MaxX";
+            Load += MainForm_Load;
             ResumeLayout(false);
         }
 
