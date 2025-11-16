@@ -8,20 +8,22 @@ using System.Threading.Tasks;
 using System.IO;
 using ChatCommon.Models;
 using Newtonsoft.Json;
+using ChatMessage = ChatCommon.Models.Message;
+
 
 namespace ChatClient.Core
 {
     internal class Client
     {
-        private TcpClient _tcpClient;
-        private NetworkStream _stream;
+        private TcpClient? _tcpClient;
+        private NetworkStream? _stream;
         private string _serverIp;
         private int _port;
         private string _username;
         private ChatLogger _logger;
         private bool _isConnected;
-        private StreamReader _reader;
-        private StreamWriter _writer;
+        private StreamReader? _reader;
+        private StreamWriter? _writer;
 
         public string ServerIp
         {
@@ -43,31 +45,27 @@ namespace ChatClient.Core
 
         public bool IsConnected => _isConnected;
 
+        //конструктор
         public Client(string serverIp, int port, string username)
         {
-            _serverIp = serverIp;
-            _port = port;
-            _username = username;
-
-            _logger = new ChatLogger("chat_history.json");
+            _serverIp=serverIp;
+            _port=port;
+            _username=username;
+            _logger=new ChatLogger("chat_history.json");
         }
 
-        public bool Connect()
+        public async Task<bool> ConnectAsync()
         {
             try
             {
                 _tcpClient = new TcpClient();
-                _tcpClient.Connect(_serverIp, _port);
-
+                await _tcpClient.ConnectAsync(_serverIp, _port);
                 _stream = _tcpClient.GetStream();
                 _reader = new StreamReader(_stream, Encoding.UTF8);
                 _writer = new StreamWriter(_stream, Encoding.UTF8) { AutoFlush = true };
-
                 _isConnected = true;
-                _writer.WriteLine(_username);
-
-                ListenToServerAsync();
-
+                await _writer.WriteLineAsync(_username);
+                _=ListenToServerAsync();
                 return true;
             }
             catch
@@ -79,9 +77,7 @@ namespace ChatClient.Core
         public void Disconnect()
         {
             if (!_isConnected) return;
-
             _isConnected = false;
-
             _reader?.Dispose();
             _writer?.Dispose();
             _stream?.Dispose();
@@ -89,24 +85,22 @@ namespace ChatClient.Core
         }
 
 
-        public void SendMessage(Message msg)
+        public async Task SendMessageAsync(ChatMessage msg)
         {
-            if (!_isConnected)
-                return;
+            if (!_isConnected) return;
 
             string json = msg.ToJson();
-           
+            await _writer.WriteAsync(json);
+            await _logger.LogMessage(msg);
         }
 
-        public void SendFile(string filePath)
+        public async Task SendFileAsync(string filePath)
         {
-            if (!File.Exists(filePath))
-                return;
-
+            if (!File.Exists(filePath))return;
             byte[] data = File.ReadAllBytes(filePath);
             string fileName = Path.GetFileName(filePath);
 
-            var msg = new Message
+            var msg = new ChatMessage
             {
                 Sender = _username,
                 Text = "",
@@ -116,13 +110,13 @@ namespace ChatClient.Core
                 FileData = data
             };
 
-            SendMessage(msg);
+            await SendMessageAsync(msg);
         }
 
      
-        public List<Message> LoadChatHistory()
+        public async Task<List<ChatMessage>> LoadChatHistory()
         {
-            return _logger.LoadHistory();
+            return await _logger.LoadHistory();
         }
 
        //ассихроно
@@ -139,18 +133,23 @@ namespace ChatClient.Core
                         Disconnect();
                         break;
                     }
-
-              
-
-                    _logger.LogMessage(msg);
+                    var msg = ChatMessage.FromJson(line);
+                    if (msg != null)
+                    {
+                        await _logger.LogMessage(msg);
+                        MessageReceived?.Invoke(msg);
+                    }
                 }
-                
+                catch
+                {
+                    Disconnect();
+                }
             }
         }
 
-        public event Action<Message> MessageReceived;
+        public event Action<ChatMessage> MessageReceived;
 
-        protected virtual void OnMessageReceived(Message msg)
+        protected virtual void OnMessageReceived(ChatMessage msg)
         {
             MessageReceived?.Invoke(msg);
         }

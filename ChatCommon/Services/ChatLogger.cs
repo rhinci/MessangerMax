@@ -55,8 +55,8 @@ namespace ChatCommon.Services
             try
             {
                 using var sr=new StreamReader(_logFilePath);
-                string line;
-                while ((line=await sr.ReadLineAsync().ConfigureAwait(false)) != null)
+                string? line;
+                while ((line = await sr.ReadLineAsync().ConfigureAwait(false)) != null)
                 {
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     try
