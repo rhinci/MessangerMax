@@ -10,6 +10,7 @@ namespace ChatServer
             Server server = new Server();
 
             server.Start(8080);
+            Console.ReadLine();
 
             Console.WriteLine("Сервер запущен. Нажмите Enter для остановки...");
             Console.ReadLine();
