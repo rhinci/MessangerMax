@@ -73,8 +73,9 @@ namespace ChatClient.Core
                 _ =ListenToServerAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine("Ошибка подключения: " + ex.Message);
                 return false;
             }
         }
@@ -97,7 +98,8 @@ namespace ChatClient.Core
             if (!_isConnected) return;
 
             string json = msg.ToJson();
-            await _writer.WriteAsync(json);
+            await _writer.WriteLineAsync(_username);
+            await _writer.FlushAsync();
             await _logger.LogMessage(msg);
         }
 

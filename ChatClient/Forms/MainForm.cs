@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using ChatMessage = ChatCommon.Models.Message;
 
 namespace ChatClient
@@ -19,9 +18,45 @@ namespace ChatClient
         private int _userYOffset = 10;      // Отступ для списка пользователей
         private List<ChatUser> _users = new List<ChatUser>();
 
+
         private Dictionary<string, List<ChatMessage>> _chatHistory = new Dictionary<string, List<ChatMessage>>();
 
         private string _currentChatUser = null; // Кто сейчас открыт
+
+
+        private void SetupPlaceholder(TextBox textBox, string placeholder)
+        {
+            textBox.Tag = placeholder;
+            textBox.ForeColor = Color.Gray;
+            textBox.Text = placeholder;
+
+            textBox.Enter += RemovePlaceholder;
+            textBox.Leave += SetPlaceholder;
+        }
+
+        private void RemovePlaceholder(object? sender, EventArgs e)
+        {
+            TextBox tb = (TextBox)sender!;
+            string placeholder = tb.Tag!.ToString()!;
+
+            if (tb.Text == placeholder)
+            {
+                tb.Text = "";
+                tb.ForeColor = Color.Black;
+            }
+        }
+
+        private void SetPlaceholder(object? sender, EventArgs e)
+        {
+            TextBox tb = (TextBox)sender!;
+            string placeholder = tb.Tag!.ToString()!;
+
+            if (string.IsNullOrWhiteSpace(tb.Text))
+            {
+                tb.Text = placeholder;
+                tb.ForeColor = Color.Gray;
+            }
+        }
 
 
         public MainForm()
@@ -30,6 +65,9 @@ namespace ChatClient
         }
         private void MainForm_Load(object sender, EventArgs e)
         {
+            SetupPlaceholder(ipTextBox, "ip");
+            SetupPlaceholder(portTextBox, "port");
+            SetupPlaceholder(usernameTextBox, "username");
             var user1 = new ChatUser
             {
                 Name = "Alex",
@@ -51,6 +89,8 @@ namespace ChatClient
             messagesPanel.Visible = false;
             DisplaySystemMessage("Выберите чат слева.");
         }
+
+
 
 
         private async void LoginButton_Click(object sender, EventArgs e)
@@ -78,9 +118,16 @@ namespace ChatClient
 
             bool connected = await _networkClient.ConnectAsync();
             if (connected)
+            {
+                messagesPanel.Visible = true;    
+                messagesPanel.Controls.Clear();
                 DisplaySystemMessage($"Пользователь '{username}' подключён к серверу!");
+                DisplaySystemMessage($"Добро пожаловать, {username}!");
+            }
             else
+            {
                 DisplaySystemMessage("Не удалось подключиться к серверу.");
+            }
         }
 
 
@@ -207,6 +254,42 @@ namespace ChatClient
             string file = Path.Combine(dir, $"{usernameTextBox.Text}_{user}.json");
             File.WriteAllText(file, System.Text.Json.JsonSerializer.Serialize(_chatHistory[user]));
         }
+
+        // Внутри класса MainForm
+        private void AddSystemMessageToPanel(ChatMessage msg)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action(() => AddSystemMessageToPanel(msg)));
+                return;
+            }
+
+            if (!messagesPanel.Visible)
+            {
+                messagesPanel.Visible = true;
+                messagesPanel.Controls.Clear();
+            }
+
+            Panel sysblock = new Panel();
+            sysblock.Width = messagesPanel.ClientSize.Width - 25;
+            sysblock.BackColor = Color.LightGray;
+            sysblock.Padding = new Padding(5);
+            sysblock.Margin = new Padding(5);
+            sysblock.AutoSize = true;
+            sysblock.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+            Label systextLabel = new Label();
+            systextLabel.Text = msg.Text;
+            systextLabel.Left = 5;
+            systextLabel.Top = 5;
+            systextLabel.AutoSize = true;
+            systextLabel.MaximumSize = new Size(sysblock.Width - 10, 0);
+
+            sysblock.Controls.Add(systextLabel);
+            messagesPanel.Controls.Add(sysblock);
+            messagesPanel.ScrollControlIntoView(sysblock);
+        }
+
         private void AddMessageToPanel(ChatMessage msg, bool isOwnMessage)
         {
             if (InvokeRequired)
