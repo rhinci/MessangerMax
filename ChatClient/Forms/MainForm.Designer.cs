@@ -150,7 +150,6 @@
             файл.TabIndex = 3;
             файл.Text = "+";
             файл.Click += файл_Click;
-
             // 
             // button1
             // 
@@ -172,13 +171,15 @@
             // 
             // MainForm
             // 
-            ClientSize = new Size(914, 722);
+            ClientSize = new Size(914, 624);
             Controls.Add(loginButton);
             Controls.Add(splitContainer1);
             Controls.Add(label1);
             Controls.Add(ipTextBox);
             Controls.Add(portTextBox);
             Controls.Add(usernameTextBox);
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
             Name = "MainForm";
             Text = "Messanger MaxX";
             Load += MainForm_Load;
