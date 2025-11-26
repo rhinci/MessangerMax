@@ -149,6 +149,8 @@
             файл.Size = new Size(23, 28);
             файл.TabIndex = 3;
             файл.Text = "+";
+            файл.Click += файл_Click;
+
             // 
             // button1
             // 

@@ -194,12 +194,56 @@ namespace ChatClient
 
         }
 
+        private string MimeMapping(string file)
+        {
+            string ext = Path.GetExtension(file).ToLower();
+
+            return ext switch
+            {
+                ".png" => "image/png",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".gif" => "image/gif",
+                ".bmp" => "image/bmp",
+                _ => "application/octet-stream"
+            };
+        }
+
+
         private async void файл_Click(object sender, EventArgs e)
         {
+            if (_networkClient == null)
+            {
+                MessageBox.Show("Сначала подключитесь к серверу!");
+                return;
+            }
+            if (_currentChatUser == null)
+            {
+                MessageBox.Show("Выберите чат слева!");
+                return;
+            }
+
             using var dialog = new OpenFileDialog();
+            dialog.Filter = "Изображения|*.png;*.jpg;*.jpeg;*.gif;*.bmp";
+
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                await _networkClient.SendFileAsync(dialog.FileName);
+                byte[] fileBytes = File.ReadAllBytes(dialog.FileName);
+
+                var msg = new ChatMessage
+                {
+                    Sender = _networkClient.Username,
+                    Receiver = _currentChatUser,
+                    Timestamp = DateTime.Now,
+                    FileName = Path.GetFileName(dialog.FileName),
+                    FileType = MimeMapping(dialog.FileName),
+                    FileData = fileBytes,
+                    Text = $"[Изображение: {Path.GetFileName(dialog.FileName)}]"
+                };
+
+                await _networkClient.SendMessageAsync(msg);
+
+                AddMessage(msg, true);
             }
         }
 
@@ -490,6 +534,26 @@ namespace ChatClient
             block.Controls.Add(avatar);
             block.Controls.Add(nameLabel);
             block.Controls.Add(textLabel);
+
+            
+            // Изображение
+            if (msg.FileData != null && msg.FileType != null && msg.FileType.StartsWith("image"))
+            {
+                PictureBox img = new PictureBox();
+                img.SizeMode = PictureBoxSizeMode.Zoom;
+                img.Width = 200;
+                img.Height = 200;
+                img.Left = 50;
+                img.Top = textLabel.Bottom + 5;
+
+                using (var ms = new MemoryStream(msg.FileData))
+                {
+                    img.Image = Image.FromStream(ms);
+                }
+
+                block.Controls.Add(img);
+            }
+
 
             messagesPanel.Controls.Add(block);
 

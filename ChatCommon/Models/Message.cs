@@ -15,6 +15,7 @@ namespace ChatCommon.Models
         private string? _receiver;
         private byte[]? _fileData;
         private string? _fileName;
+        public string? FileType { get; set; }
 
         public string? Sender
         {
